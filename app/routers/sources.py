@@ -14,17 +14,17 @@ from ..models import (
 )
 from ..services import SourceService
 
-router = APIRouter(tags=["sorgenti"])
+router = APIRouter(tags=["sources"])
 
 TECHNICAL_NAME = Path(
     ...,
     pattern=r"^[A-Za-z0-9_.\-]+$",
-    description="Nome tecnico del modulo, es. `web_responsive`",
+    description="Module technical name, e.g. `web_responsive`",
 )
-SERIES_PATH = Path(..., pattern=SERIES_PATTERN, description="Serie Odoo, es. `18.0`")
+SERIES_PATH = Path(..., pattern=SERIES_PATTERN, description="Odoo series, e.g. `18.0`")
 
 
-@router.get("/sources", response_model=SourceListResponse, summary="Moduli già prelevati")
+@router.get("/sources", response_model=SourceListResponse, summary="Modules already fetched")
 async def list_sources(source: SourceService = Depends(get_source)) -> SourceListResponse:
     return await source.list()
 
@@ -32,11 +32,11 @@ async def list_sources(source: SourceService = Depends(get_source)) -> SourceLis
 @router.post(
     "/sources/{series}/{technical_name}",
     response_model=ModuleSource,
-    summary="Preleva il codice di un modulo gratuito",
+    summary="Fetch a free module's source",
     description=(
-        "Il codice arriva dal repository dichiarato nella scheda dello store, non "
-        "da apps.odoo.com: lo store serve il download solo dietro reCAPTCHA e non è "
-        "interrogabile da un client automatico. Sono ammessi i soli moduli gratuiti."
+        "The code comes from the repository declared on the store listing, not from "
+        "apps.odoo.com: the store serves downloads only behind reCAPTCHA and cannot be "
+        "driven by an automated client. Free modules only."
     ),
 )
 async def fetch_source(
@@ -45,9 +45,9 @@ async def fetch_source(
     ref: str | None = Query(
         default=None,
         pattern=r"^[A-Za-z0-9_.\-/]+$",
-        description="Branch del repository; se omesso viene usata la serie",
+        description="Repository branch; the series is used when omitted",
     ),
-    force: bool = Query(default=False, description="Ripreleva anche se già presente"),
+    force: bool = Query(default=False, description="Refetch even if already present"),
     source: SourceService = Depends(get_source),
 ) -> ModuleSource:
     return await source.fetch(series, technical_name, ref=ref, force=force)
@@ -56,7 +56,7 @@ async def fetch_source(
 @router.get(
     "/sources/{series}/{technical_name}/files",
     response_model=SourceFilesResponse,
-    summary="Elenco dei file del modulo prelevato",
+    summary="File listing of the fetched module",
 )
 async def list_files(
     series: str = SERIES_PATH,
@@ -69,12 +69,12 @@ async def list_files(
 @router.get(
     "/sources/{series}/{technical_name}/file",
     response_model=SourceFileContent,
-    summary="Contenuto di un file del modulo prelevato",
+    summary="Contents of a file in the fetched module",
 )
 async def read_file(
     series: str = SERIES_PATH,
     technical_name: str = TECHNICAL_NAME,
-    path: str = Query(..., description="Percorso relativo alla radice del modulo"),
+    path: str = Query(..., description="Path relative to the module root"),
     source: SourceService = Depends(get_source),
 ) -> SourceFileContent:
     return await source.read_file(series, technical_name, path)

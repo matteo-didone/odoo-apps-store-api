@@ -8,7 +8,7 @@ class StoreError(Exception):
 class StoreNotFound(StoreError):
     """La risorsa non esiste su apps.odoo.com (404 a monte)."""
 
-    def __init__(self, message: str = "Risorsa non trovata sull'Odoo Apps Store"):
+    def __init__(self, message: str = "Resource not found on the Odoo Apps Store"):
         super().__init__(message)
         self.message = message
 

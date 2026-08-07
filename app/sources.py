@@ -56,7 +56,7 @@ def parse_github_repo(website: str | None) -> RepoRef:
     """Ricava owner/repo dal campo `website` della scheda del modulo."""
     if not website or not website.strip():
         raise SourceUnavailable(
-            "La scheda del modulo non dichiara alcun repository di origine"
+            "The module listing declares no origin repository"
         )
 
     raw = website.strip()
@@ -67,19 +67,19 @@ def parse_github_repo(website: str | None) -> RepoRef:
     host = (parsed.hostname or "").lower()
     if host not in GITHUB_HOSTS:
         raise SourceUnavailable(
-            f"Il modulo dichiara '{website}', che non è un repository GitHub: "
-            "il prelievo automatico non è supportato"
+            f"The module declares '{website}', which is not a GitHub repository: "
+            "automatic fetching is not supported"
         )
 
     parts = [part for part in parsed.path.split("/") if part]
     if len(parts) < 2:
-        raise SourceUnavailable(f"'{website}' non identifica un repository GitHub")
+        raise SourceUnavailable(f"'{website}' does not identify a GitHub repository")
 
     owner, name = parts[0], parts[1]
     if name.endswith(".git"):
         name = name[:-4]
     if not SAFE_NAME_RE.match(owner) or not SAFE_NAME_RE.match(name):
-        raise SourceUnavailable(f"'{website}' contiene un nome di repository non valido")
+        raise SourceUnavailable(f"'{website}' contains an invalid repository name")
 
     return RepoRef(owner=owner, name=name)
 
@@ -125,21 +125,21 @@ class GitHubFetcher:
             async with self._client.stream("GET", url) as response:
                 if response.status_code == 404:
                     raise SourceUnavailable(
-                        f"Il branch '{ref}' non esiste in {repo.url}"
+                        f"Branch '{ref}' does not exist in {repo.url}"
                     )
                 if response.status_code >= 400:
                     raise UpstreamError(
-                        f"GitHub ha risposto {response.status_code} su {url}"
+                        f"GitHub responded {response.status_code} for {url}"
                     )
 
                 async for chunk in response.aiter_bytes():
                     buffer.extend(chunk)
                     if len(buffer) > limit:
                         raise SourceUnavailable(
-                            f"L'archivio di {repo.url} supera il tetto di {limit} byte"
+                            f"The archive from {repo.url} exceeds the {limit} byte cap"
                         )
         except httpx.HTTPError as exc:
-            raise UpstreamError(f"GitHub non raggiungibile: {exc}") from exc
+            raise UpstreamError(f"GitHub unreachable: {exc}") from exc
 
         return bytes(buffer)
 
@@ -159,7 +159,7 @@ def extract_module(
     un modulo mutilato.
     """
     if not SAFE_NAME_RE.match(technical_name):
-        raise SourceUnavailable(f"Nome tecnico non valido: '{technical_name}'")
+        raise SourceUnavailable(f"Invalid technical name: '{technical_name}'")
 
     allowed = settings.max_extracted_bytes
     if archive:
@@ -192,8 +192,8 @@ def extract_module(
                 total += member.size
                 if total > allowed:
                     raise SourceUnavailable(
-                        f"Il modulo estratto supera il tetto di {allowed} byte: "
-                        "archivio rifiutato"
+                        f"The extracted module exceeds the {allowed} byte cap: "
+                        "archive rejected"
                     )
 
                 source = tar.extractfile(member)
@@ -206,7 +206,7 @@ def extract_module(
 
         if files == 0:
             raise SourceUnavailable(
-                f"L'archivio non contiene la cartella '{technical_name}'"
+                f"The archive does not contain the '{technical_name}' directory"
             )
 
         manifest = read_manifest(staging)
@@ -259,14 +259,14 @@ def _module_relative_path(name: str, technical_name: str) -> PurePosixPath | Non
 def _reject_unsafe(member: tarfile.TarInfo, relative: PurePosixPath) -> None:
     if member.issym() or member.islnk():
         raise SourceUnavailable(
-            f"L'archivio contiene un link ('{member.name}'): rifiutato"
+            f"The archive contains a link ('{member.name}'): rejected"
         )
     if not (member.isfile() or member.isdir()):
         raise SourceUnavailable(
-            f"L'archivio contiene un membro di tipo non consentito ('{member.name}')"
+            f"The archive contains a member of a disallowed type ('{member.name}')"
         )
     if relative.is_absolute() or ".." in relative.parts:
         raise SourceUnavailable(
-            f"L'archivio contiene un percorso che esce dalla cartella "
-            f"del modulo ('{member.name}'): rifiutato"
+            f"The archive contains a path that escapes the module "
+            f"directory ('{member.name}'): rejected"
         )

@@ -9,20 +9,20 @@ from ..dependencies import get_catalog
 from ..models import CategoryInfo, SearchResponse
 from ..services import CatalogService
 
-router = APIRouter(tags=["catalogo"])
+router = APIRouter(tags=["catalog"])
 
 
-@router.get("/categories", response_model=list[CategoryInfo], summary="Categorie ufficiali")
+@router.get("/categories", response_model=list[CategoryInfo], summary="Official categories")
 async def categories(catalog: CatalogService = Depends(get_catalog)) -> list[CategoryInfo]:
     return catalog.categories()
 
 
-@router.get("/series", response_model=list[str], summary="Serie Odoo pubblicate sullo store")
+@router.get("/series", response_model=list[str], summary="Odoo series published on the store")
 async def series() -> list[str]:
     return list(SERIES)
 
 
-@router.get("/orders", response_model=list[str], summary="Criteri di ordinamento accettati")
+@router.get("/orders", response_model=list[str], summary="Accepted sort orders")
 async def orders() -> list[str]:
     return [order.value for order in Order]
 
@@ -30,11 +30,11 @@ async def orders() -> list[str]:
 @router.get(
     "/authors/{author}",
     response_model=SearchResponse,
-    summary="Moduli pubblicati da un autore",
+    summary="Modules published by an author",
 )
 async def by_author(
     author: str = Path(
-        ..., description="Nome esatto del publisher, es. `Cybrosys Techno Solutions`"
+        ..., description="Exact publisher name, e.g. `Cybrosys Techno Solutions`"
     ),
     series: str | None = Query(default=None, pattern=SERIES_PATTERN),
     price: PriceFilter | None = Query(default=None),

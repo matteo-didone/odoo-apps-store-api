@@ -154,7 +154,7 @@ class CatalogService:
         )
         if fetched.status == 404:
             raise StoreNotFound(
-                f"Il modulo '{technical_name}' non esiste per la serie {series}"
+                f"Module '{technical_name}' does not exist for series {series}"
             )
 
         detail = parse_detail(
@@ -218,7 +218,7 @@ class CatalogService:
             if card.technical_name == technical_name:
                 return card.series
         raise StoreNotFound(
-            f"Nessun modulo '{technical_name}' trovato sull'Odoo Apps Store"
+            f"No module named '{technical_name}' found on the Odoo Apps Store"
         )
 
     # -------------------------------------------------------------- cataloghi

@@ -70,7 +70,7 @@ class SourceService:
 
         if not detail.price.is_free:
             raise SourceUnavailable(
-                f"'{technical_name}' è a pagamento: il codice non viene prelevato"
+                f"'{technical_name}' is a paid module: its source is not fetched"
             )
 
         repo = parse_github_repo(detail.website)
@@ -207,11 +207,11 @@ class SourceService:
         # Il percorso arriva da query string: va confinato dentro il modulo.
         if not target.is_relative_to(base):
             raise SourceUnavailable(
-                f"Il percorso '{relative_path}' esce dalla cartella del modulo"
+                f"Path '{relative_path}' escapes the module directory"
             )
         if not target.is_file():
             raise StoreNotFound(
-                f"'{relative_path}' non esiste in {series}/{technical_name}"
+                f"'{relative_path}' does not exist in {series}/{technical_name}"
             )
 
         size = target.stat().st_size
@@ -229,7 +229,7 @@ class SourceService:
         record = await self.get(series, technical_name)
         if record is None:
             raise StoreNotFound(
-                f"Il codice di {series}/{technical_name} non è ancora stato prelevato"
+                f"The source for {series}/{technical_name} has not been fetched yet"
             )
         return Path(record.path).resolve()
 

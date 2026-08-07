@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     base_url: str = "https://apps.odoo.com"
     # Va sostituito con un contatto reale via ODOO_STORE_USER_AGENT: è la cortesia
     # minima verso un sito che si sta interrogando in automatico.
-    user_agent: str = "odoo-store-api/0.1 (+https://apps.odoo.com; contatto: tua@email.it)"
+    user_agent: str = "odoo-store-api/0.1 (+https://apps.odoo.com; contact: you@example.com)"
     request_timeout: float = 20.0
 
     # --- buone maniere verso apps.odoo.com ---

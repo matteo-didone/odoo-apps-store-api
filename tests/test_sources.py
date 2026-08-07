@@ -93,7 +93,7 @@ class TestEstrazioneSicura:
 
     def test_percorso_che_esce_dal_modulo_rifiutato(self, tarball, tmp_path):
         archive = tarball({"web_responsive/../../evil.py": b"pwn"})
-        with pytest.raises(SourceUnavailable, match="esce dalla cartella"):
+        with pytest.raises(SourceUnavailable, match="escapes the module"):
             extract_module(archive, "web_responsive", tmp_path / "m", settings=self.settings)
 
     def test_symlink_dentro_il_modulo_rifiutato(self, tarball, tmp_path):
@@ -119,12 +119,12 @@ class TestEstrazioneSicura:
     def test_tar_bomb_rifiutata(self, tarball, tmp_path):
         # 20 MB di zeri stanno in pochi KB compressi: è il rapporto a tradirla.
         archive = tarball({"web_responsive/big.bin": b"\0" * 20_000_000})
-        with pytest.raises(SourceUnavailable, match="supera il tetto"):
+        with pytest.raises(SourceUnavailable, match="exceeds the"):
             extract_module(archive, "web_responsive", tmp_path / "m", settings=self.settings)
 
     def test_modulo_assente_dallarchivio(self, tarball, tmp_path):
         archive = tarball({"altro/__manifest__.py": b"{}"})
-        with pytest.raises(SourceUnavailable, match="non contiene la cartella"):
+        with pytest.raises(SourceUnavailable, match="does not contain the"):
             extract_module(archive, "web_responsive", tmp_path / "m", settings=self.settings)
 
     def test_nessun_residuo_dopo_un_rifiuto(self, tarball, tmp_path):
@@ -206,15 +206,15 @@ async def test_modulo_a_pagamento_rifiutato(client, app_and_services, seed_cache
 
     response = await client.post("/api/v1/sources/18.0/common_connector_library")
     assert response.status_code == 400
-    assert "a pagamento" in response.json()["detail"]
+    assert "paid module" in response.json()["detail"]
 
 
 @pytest.mark.parametrize(
     ("files", "symlinks", "atteso"),
     [
-        ({"web_responsive/../../evil": b"x"}, None, "esce dalla cartella"),
+        ({"web_responsive/../../evil": b"x"}, None, "escapes the module"),
         ({"web_responsive/__manifest__.py": MANIFEST}, {"web_responsive/l": "/etc/passwd"}, "link"),
-        ({"altro/__manifest__.py": b"{}"}, None, "non contiene la cartella"),
+        ({"altro/__manifest__.py": b"{}"}, None, "does not contain the"),
     ],
 )
 async def test_archivi_ostili_rifiutati_dallapi(
@@ -242,7 +242,7 @@ async def test_branch_inesistente(client, app_and_services, seed_cache, serve_ar
 async def test_lettura_di_un_modulo_mai_prelevato(client):
     response = await client.get("/api/v1/sources/19.0/web_responsive/files")
     assert response.status_code == 404
-    assert "non è ancora stato prelevato" in response.json()["detail"]
+    assert "has not been fetched yet" in response.json()["detail"]
 
 
 async def test_path_traversal_in_lettura(
@@ -257,7 +257,7 @@ async def test_path_traversal_in_lettura(
         "/api/v1/sources/19.0/web_responsive/file", params={"path": "../../../../etc/passwd"}
     )
     assert response.status_code == 400
-    assert "esce dalla cartella" in response.json()["detail"]
+    assert "escapes the module directory" in response.json()["detail"]
 
 
 async def test_prelievo_idempotente(

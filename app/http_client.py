@@ -77,7 +77,7 @@ class HttpFetcher:
                     if response.status_code not in RETRYABLE_STATUS:
                         return response
                     last_error = UpstreamError(
-                        f"apps.odoo.com ha risposto {response.status_code}"
+                        f"apps.odoo.com responded {response.status_code}"
                     )
                     logger.warning(
                         "Status %s su %s (tentativo %s)", response.status_code, url, attempt + 1
@@ -91,8 +91,8 @@ class HttpFetcher:
                 await asyncio.sleep(2**attempt + random.uniform(0, 0.3))
 
         raise UpstreamError(
-            f"apps.odoo.com non raggiungibile dopo "
-            f"{self._settings.max_retries} tentativi: {last_error}"
+            f"apps.odoo.com unreachable after "
+            f"{self._settings.max_retries} attempts: {last_error}"
         )
 
 

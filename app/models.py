@@ -9,7 +9,7 @@ class Price(BaseModel):
     is_free: bool = True
     amount: float | None = None
     currency: str | None = Field(
-        default=None, description="Codice ISO se riconosciuto, altrimenti il simbolo"
+        default=None, description="ISO code when the symbol is recognized, otherwise the symbol"
     )
 
 
@@ -61,7 +61,7 @@ class ModuleDetail(ModuleCard):
     from_cache: bool = False
     stale: bool = Field(
         default=False,
-        description="True se servito da cache scaduta perché l'upstream non risponde",
+        description="True when served from an expired cache because upstream is unreachable",
     )
     parse_warnings: list[str] = []
 
@@ -131,8 +131,8 @@ class TrendResponse(BaseModel):
     delta_downloads: int | None = None
     avg_downloads_per_day: float | None = None
     note: str = (
-        "Lo store non pubblica alcuno storico: i punti partono dal primo giorno in cui "
-        "questa API ha letto il modulo."
+        "The store publishes no history: these points start on the first day this API "
+        "read the module."
     )
 
 
@@ -154,7 +154,7 @@ class ModuleSource(BaseModel):
     technical_name: str
     series: str
     repo_url: str
-    ref: str = Field(description="Branch del repository da cui è stato preso il codice")
+    ref: str = Field(description="Repository branch the code was taken from")
     path: str
     name: str | None = None
     version: str | None = None
@@ -174,7 +174,7 @@ class SourceListResponse(BaseModel):
 
 
 class SourceFile(BaseModel):
-    path: str = Field(description="Percorso relativo alla radice del modulo")
+    path: str = Field(description="Path relative to the module root")
     size: int
 
 

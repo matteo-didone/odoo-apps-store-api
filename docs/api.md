@@ -1,51 +1,53 @@
-# Riferimento API
+# API reference
 
-Tutti gli endpoint stanno sotto `/api/v1`. Le risposte sono JSON UTF-8.
-Lo schema OpenAPI generato è su `/openapi.json`, la console interattiva su `/docs`.
+**English** · [Italiano](api.it.md)
 
-- [Convenzioni](#convenzioni)
-- [Catalogo](#catalogo) — `search`, `modules`, `versions`, `authors`, `categories`
-- [Statistiche](#statistiche) — `stats`, `watchlist`
-- [Sorgenti](#sorgenti) — `sources`
-- [Servizio](#servizio) — `health`
-- [Errori](#errori)
-- [Tipi di dato](#tipi-di-dato)
+Every endpoint lives under `/api/v1`. Responses are UTF-8 JSON.
+The generated OpenAPI schema is at `/openapi.json`, the interactive console at `/docs`.
 
-## Convenzioni
+- [Conventions](#conventions)
+- [Catalog](#catalog) — `search`, `modules`, `versions`, `authors`, `categories`
+- [Statistics](#statistics) — `stats`, `watchlist`
+- [Sources](#sources) — `sources`
+- [Service](#service) — `health`
+- [Errors](#errors)
+- [Data types](#data-types)
 
-**Serie.** Ovunque compaia `{series}` vale il pattern `^(?:saas-)?\d+\.\d+$`: le serie
-maggiori (`19.0` … `5.0`, incluso `6.1`) e le release online intermedie che lo store usa
-negli URL (`saas-19.4`). Una serie malformata dà `422`, una serie inesistente per quel
-modulo dà `404`.
+## Conventions
 
-**Nome tecnico.** `{technical_name}` accetta `^[A-Za-z0-9_.\-]+$`, es. `web_responsive`.
+**Series.** Wherever `{series}` appears, the pattern is `^(?:saas-)?\d+\.\d+$`: the major
+series (`19.0` through `5.0`, including `6.1`) plus the intermediate online releases the
+store uses in its URLs (`saas-19.4`). A malformed series returns `422`; a series that does
+not exist for that module returns `404`.
 
-**Cache.** Le risposte che nascono da una pagina dello store portano `from_cache` e
-`stale`. `stale: true` significa che l'upstream non rispondeva e si è servita una copia
-scaduta: i dati sono vecchi ma utilizzabili.
+**Technical name.** `{technical_name}` accepts `^[A-Za-z0-9_.\-]+$`, e.g. `web_responsive`.
 
-**Paginazione.** Lo store serve 20 schede per pagina e non è configurabile. `page` sceglie
-la pagina di partenza; `limit` può superare 20 e in quel caso il servizio legge più pagine
-consecutive (fino a `ODOO_STORE_MAX_SEARCH_LIMIT`, default 100), rispettando il rate limit.
+**Cache.** Responses derived from a store page carry `from_cache` and `stale`.
+`stale: true` means upstream was unreachable and an expired copy was served: the data is
+old but usable.
+
+**Pagination.** The store serves 20 listings per page and that is not configurable. `page`
+picks the starting page; `limit` may exceed 20, in which case the service reads consecutive
+pages (up to `ODOO_STORE_MAX_SEARCH_LIMIT`, 100 by default) while respecting the rate limit.
 
 ---
 
-## Catalogo
+## Catalog
 
 ### `GET /search`
 
-Ricerca nel catalogo con i filtri del sito.
+Search the catalog using the site's own filters.
 
-| Parametro | Tipo | Default | Note |
+| Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `q` | string | — | testo libero |
-| `series` | string | — | es. `18.0` |
+| `q` | string | — | free text |
+| `series` | string | — | e.g. `18.0` |
 | `price` | `free` \| `paid` | — | |
-| `category` | slug | — | vedi [`GET /categories`](#get-categories) |
-| `author` | string | — | nome esatto del publisher |
-| `order` | slug | `relevance` lato store | vedi [`GET /orders`](#get-orders) |
-| `page` | int ≥ 1 | `1` | pagina di partenza |
-| `limit` | int 1–100 | `20` | oltre 20 legge più pagine |
+| `category` | slug | — | see [`GET /categories`](#get-categories) |
+| `author` | string | — | exact publisher name |
+| `order` | slug | store-side `relevance` | see [`GET /orders`](#get-orders) |
+| `page` | int ≥ 1 | `1` | starting page |
+| `limit` | int 1–100 | `20` | above 20, reads multiple pages |
 
 ```bash
 curl -s "http://localhost:8000/api/v1/search?q=whatsapp&series=18.0&order=downloads&limit=3"
@@ -66,36 +68,36 @@ curl -s "http://localhost:8000/api/v1/search?q=whatsapp&series=18.0&order=downlo
 }
 ```
 
-`total_estimated` è `total_pages × 20`: è una stima, l'ultima pagina è quasi sempre
-incompleta. `source_urls` elenca le pagine dello store effettivamente lette, utile per
-verificare a mano cosa ha visto il servizio.
+`total_estimated` is `total_pages × 20`: an estimate, since the last page is almost always
+partial. `source_urls` lists the store pages actually read, which is handy for checking by
+hand what the service saw.
 
-Gli elementi di `items` sono [ModuleCard](#modulecard).
+Items in `items` are [ModuleCard](#modulecard) objects.
 
 ### `GET /modules/{series}/{technical_name}`
 
-Scheda completa. Restituisce un [ModuleDetail](#moduledetail).
+The full listing. Returns a [ModuleDetail](#moduledetail).
 
-| Parametro | Tipo | Default | Note |
+| Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `refresh` | bool | `false` | ignora la cache e rilegge dall'upstream |
+| `refresh` | bool | `false` | ignore the cache and re-read from upstream |
 
 ```bash
 curl -s "http://localhost:8000/api/v1/modules/19.0/web_responsive"
 ```
 
-Ogni lettura che arriva davvero dall'upstream (non da cache) registra uno snapshot dei
-contatori, che alimenta [`GET /stats`](#get-statsseriestechnical_name).
+Every read that genuinely comes from upstream (not from cache) records a counter snapshot,
+which is what feeds [`GET /stats`](#get-statsseriestechnical_name).
 
 ### `GET /modules/{technical_name}/versions`
 
-Su quali serie Odoo esiste il modulo. La pagina di dettaglio elenca già i collegamenti
-alle altre serie, quindi la forma base costa una sola richiesta allo store.
+Which Odoo series the module exists on. The module page already links to its other series,
+so the basic form costs a single request to the store.
 
-| Parametro | Tipo | Default | Note |
+| Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `series` | string | — | serie da cui partire; se omessa viene individuata con una ricerca |
-| `detailed` | bool | `false` | legge ogni serie per riempire `version`, `name`, `price`, `downloads_total` |
+| `series` | string | — | series to start from; if omitted it is discovered with a search |
+| `detailed` | bool | `false` | reads every series to fill in `version`, `name`, `price`, `downloads_total` |
 
 ```bash
 curl -s "http://localhost:8000/api/v1/modules/report_xlsx/versions?detailed=true"
@@ -114,14 +116,14 @@ curl -s "http://localhost:8000/api/v1/modules/report_xlsx/versions?detailed=true
 }
 ```
 
-Con `detailed=true` il servizio fa una richiesta per serie: su un modulo presente su
-dodici serie sono dodici letture, servite a 1 rps se non sono in cache.
+With `detailed=true` the service makes one request per series: for a module present on
+twelve series that is twelve reads, served at 1 rps when they are not already cached.
 
 ### `GET /authors/{author}`
 
-Moduli di un publisher. Il nome deve essere quello esatto che compare sullo store
-(`Cybrosys Techno Solutions`, non `cybrosys`). Accetta gli stessi filtri di `/search`
-tranne `q`, e restituisce la stessa struttura.
+Modules by a publisher. The name must match the store exactly (`Cybrosys Techno Solutions`,
+not `cybrosys`). It accepts the same filters as `/search` except `q`, and returns the same
+structure.
 
 ```bash
 curl -s "http://localhost:8000/api/v1/authors/Cybrosys%20Techno%20Solutions?limit=5"
@@ -129,7 +131,7 @@ curl -s "http://localhost:8000/api/v1/authors/Cybrosys%20Techno%20Solutions?limi
 
 ### `GET /categories`
 
-Le 18 categorie ufficiali, con lo slug da usare nel filtro `category` e l'URL sullo store.
+The 18 official categories, with the slug to use in the `category` filter and the store URL.
 
 ```json
 [ { "slug": "point_of_sale", "label": "Point of Sale",
@@ -138,28 +140,28 @@ Le 18 categorie ufficiali, con lo slug da usare nel filtro `category` e l'URL su
 
 ### `GET /series`
 
-Le serie maggiori filtrabili, dalla più recente. Non include le `saas-*`, che esistono
-negli URL dello store ma non nel suo filtro.
+The major filterable series, newest first. It excludes the `saas-*` releases, which exist in
+store URLs but not in its filter.
 
 ### `GET /orders`
 
-Gli slug di ordinamento accettati: `relevance`, `downloads`, `newest`, `ratings`, `name`,
+The accepted sort slugs: `relevance`, `downloads`, `newest`, `ratings`, `name`,
 `best_sellers`, `purchases`, `price_desc`, `price_asc`.
 
 ---
 
-## Statistiche
+## Statistics
 
-Lo store pubblica solo il valore corrente dei contatori: nessuno storico, nemmeno la data
-di aggiornamento di un modulo. La serie storica è quindi costruita da questa API
-campionando, e **parte dal primo giorno in cui il modulo è stato letto**.
+The store publishes only the current value of its counters: no history, not even a module's
+last-updated date. The time series is therefore built by this API through sampling, and
+**starts the day the module was first read**.
 
 ### `GET /stats/{series}/{technical_name}`
 
-| Parametro | Tipo | Default | Note |
+| Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `days` | int ≥ 1 | — | ultimi N campionamenti |
-| `sample_now` | bool | `true` | legge il modulo prima di rispondere, così c'è sempre almeno un punto |
+| `days` | int ≥ 1 | — | last N samples |
+| `sample_now` | bool | `true` | reads the module before answering, so there is always at least one point |
 
 ```json
 {
@@ -174,21 +176,21 @@ campionando, e **parte dal primo giorno in cui il modulo è stato letto**.
   "last_seen": "2026-08-07",
   "delta_downloads": null,
   "avg_downloads_per_day": null,
-  "note": "Lo store non pubblica alcuno storico: …"
+  "note": "The store publishes no history: these points start …"
 }
 ```
 
-`delta_downloads` e `avg_downloads_per_day` restano `null` finché non ci sono almeno due
-campionamenti in giorni diversi: con un punto solo un delta sarebbe zero e ingannevole.
+`delta_downloads` and `avg_downloads_per_day` stay `null` until there are at least two
+samples on different days: with a single point a delta would be zero and misleading.
 
-`downloads_last_month` è sempre `null` qui, perché la pagina di dettaglio non lo riporta:
-quel dato esiste solo nelle liste.
+`downloads_last_month` is always `null` here, because the module page does not carry it —
+that figure exists only in listings.
 
 ### `GET /watchlist` · `POST /watchlist` · `DELETE /watchlist/{id}`
 
-I moduli in watchlist vengono ricampionati da un job giornaliero (default 03:00,
-configurabile con `ODOO_STORE_SNAPSHOT_HOUR`). È il modo per avere una serie storica
-continua senza dover interrogare a mano.
+Watchlisted modules are resampled by a daily job (03:00 by default, configurable through
+`ODOO_STORE_SNAPSHOT_HOUR`). This is how you get a continuous time series without polling
+by hand.
 
 ```bash
 curl -s -X POST "http://localhost:8000/api/v1/watchlist" \
@@ -196,30 +198,30 @@ curl -s -X POST "http://localhost:8000/api/v1/watchlist" \
   -d '{"technical_name":"web_responsive","series":"19.0"}'
 ```
 
-`POST` verifica che il modulo esista davvero e registra subito il primo punto.
-Ripetere la stessa coppia non crea duplicati. `DELETE` su un id inesistente dà `404`.
+`POST` verifies the module actually exists and records the first data point immediately.
+Repeating the same pair creates no duplicate. `DELETE` on an unknown id returns `404`.
 
 ### `POST /watchlist/refresh`
 
-Forza subito un giro di campionamento su tutta la watchlist, rileggendo ogni modulo
-dall'upstream. Risponde `{"refreshed": N}`. Un modulo che nel frattempo è stato rimosso
-dallo store viene saltato senza fermare il giro.
+Runs a sampling pass over the whole watchlist right now, re-reading each module from
+upstream. Responds with `{"refreshed": N}`. A module that has since been pulled from the
+store is skipped without aborting the pass.
 
 ---
 
-## Sorgenti
+## Sources
 
-Lo store serve il download solo dietro reCAPTCHA v3, quindi non è interrogabile da un
-client automatico. Il codice dei moduli **gratuiti** è però pubblico e la scheda dichiara
-il repository di origine: il servizio preleva il tarball da lì, con licenza esplicita e
-senza aggirare alcun controllo.
+The store serves downloads only behind reCAPTCHA v3, so they cannot be driven by an
+automated client. The source of **free** modules is public, though, and each listing
+declares its origin repository: the service pulls the tarball from there, under an explicit
+license and without circumventing any control.
 
 ### `POST /sources/{series}/{technical_name}`
 
-| Parametro | Tipo | Default | Note |
+| Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `ref` | string | la serie stessa | branch del repository, es. `18.0` |
-| `force` | bool | `false` | ripreleva anche se già presente in locale |
+| `ref` | string | the series itself | repository branch, e.g. `18.0` |
+| `force` | bool | `false` | refetch even if already present locally |
 
 ```bash
 curl -s -X POST "http://localhost:8000/api/v1/sources/18.0/llm_mcp_server"
@@ -243,20 +245,20 @@ curl -s -X POST "http://localhost:8000/api/v1/sources/18.0/llm_mcp_server"
 }
 ```
 
-`name`, `version`, `license`, `author` e `depends` vengono dal `__manifest__.py` del
-modulo, letto con `ast.literal_eval`: il codice del modulo **non** viene eseguito. Quando
-il manifest non li dichiara si ricade sui valori della scheda dello store.
+`name`, `version`, `license`, `author`, and `depends` come from the module's
+`__manifest__.py`, read with `ast.literal_eval`: the module's code is **not** executed.
+When the manifest omits them, the store listing's values are used instead.
 
-Senza `force`, un modulo già presente viene restituito dall'indice senza ricontattare
-GitHub. Il branch usato di default è il nome della serie, che è la convenzione degli
-addon Odoo; per repository che usano altri nomi c'è `ref`.
+Without `force`, a module already on disk is returned from the index without contacting
+GitHub again. The default branch is the series name, which is the Odoo addon convention;
+`ref` covers repositories that use different names.
 
-Risponde `400` quando il prelievo non è possibile: modulo a pagamento, scheda senza
-repository, repository non GitHub, archivio che non supera i controlli di sicurezza.
+Returns `400` when the fetch is not possible: paid module, listing without a repository,
+non-GitHub repository, or an archive that fails the safety checks.
 
 ### `GET /sources`
 
-Moduli già prelevati. Un record il cui percorso su disco è sparito non viene elencato.
+Modules already fetched. A record whose directory has disappeared from disk is not listed.
 
 ```json
 { "items": [ { "technical_name": "llm_mcp_server", "…": "…" } ], "count": 1, "source_dir": "data/modules" }
@@ -264,7 +266,7 @@ Moduli già prelevati. Un record il cui percorso su disco è sparito non viene e
 
 ### `GET /sources/{series}/{technical_name}/files`
 
-Elenco ricorsivo dei file, ordinato, con dimensione in byte.
+Recursive, sorted file listing with sizes in bytes.
 
 ```json
 {
@@ -273,13 +275,13 @@ Elenco ricorsivo dei file, ordinato, con dimensione in byte.
 }
 ```
 
-`404` se il modulo non è ancora stato prelevato.
+`404` if the module has not been fetched yet.
 
 ### `GET /sources/{series}/{technical_name}/file`
 
-| Parametro | Tipo | Note |
+| Parameter | Type | Notes |
 |---|---|---|
-| `path` | string, obbligatorio | percorso relativo alla radice del modulo |
+| `path` | string, required | path relative to the module root |
 
 ```bash
 curl -s "http://localhost:8000/api/v1/sources/18.0/llm_mcp_server/file?path=__manifest__.py"
@@ -289,13 +291,13 @@ curl -s "http://localhost:8000/api/v1/sources/18.0/llm_mcp_server/file?path=__ma
   "size": 2214, "content": "{\n    'name': 'LLM MCP Server',\n …", "truncated": false }
 ```
 
-Oltre 512 KB il contenuto viene troncato e `truncated` diventa `true`; `size` resta la
-dimensione reale del file. Un `path` che tenta di uscire dalla cartella del modulo dà
-`400`, un file inesistente dà `404`.
+Past 512 KB the content is truncated and `truncated` becomes `true`; `size` remains the
+file's real size. A `path` that tries to escape the module directory returns `400`, a
+missing file returns `404`.
 
 ---
 
-## Servizio
+## Service
 
 ### `GET /health`
 
@@ -307,75 +309,75 @@ dimensione reale del file. Un `path` che tenta di uscire dalla cartella del modu
 }
 ```
 
-I contatori `cache_hits` / `cache_misses` sono dall'avvio del processo, non persistenti.
+`cache_hits` and `cache_misses` count from process start; they are not persisted.
 
 ---
 
-## Errori
+## Errors
 
-| Codice | Quando | Corpo |
+| Code | When | Body |
 |---|---|---|
-| `400` | prelievo del codice non possibile (modulo a pagamento, repository assente o non GitHub, archivio rifiutato, percorso fuori dal modulo) | `{"detail": "…"}` |
-| `404` | modulo o serie inesistenti sullo store, sorgente non ancora prelevata, id di watchlist inesistente | `{"detail": "…"}` |
-| `422` | parametro malformato (serie, nome tecnico, valori fuori range) | formato standard FastAPI |
-| `502` | apps.odoo.com o GitHub irraggiungibili, oppure markup cambiato | `{"detail": "…", "retry_after": 30}` più header `Retry-After` |
+| `400` | source fetch not possible (paid module, missing or non-GitHub repository, rejected archive, path outside the module) | `{"detail": "…"}` |
+| `404` | module or series not on the store, source not fetched yet, unknown watchlist id | `{"detail": "…"}` |
+| `422` | malformed parameter (series, technical name, out-of-range values) | standard FastAPI format |
+| `502` | apps.odoo.com or GitHub unreachable, or markup changed | `{"detail": "…", "retry_after": 30}` plus a `Retry-After` header |
 
-Un `502` da markup cambiato porta anche `hint`, che invita ad aggiornare i parser: è il
-segnale che il sito è stato ristrutturato e i fixture di test vanno riscaricati.
+A `502` caused by changed markup also carries `hint`, suggesting the parsers be updated:
+that is the signal that the site was restructured and the test fixtures need refreshing.
 
-Nota: se una pagina è in cache e l'upstream cade, non si riceve un `502` ma la risposta
-precedente con `stale: true`.
+Note: if a page is cached and upstream goes down, you do not get a `502` — you get the
+previous response with `stale: true`.
 
 ---
 
-## Tipi di dato
+## Data types
 
 ### ModuleCard
 
-Modulo come compare nelle liste di ricerca.
+A module as it appears in search listings.
 
-| Campo | Tipo | Note |
+| Field | Type | Notes |
 |---|---|---|
-| `technical_name` | string | es. `web_responsive` |
-| `series` | string | serie della scheda |
-| `name` | string | titolo commerciale |
-| `summary` | string \| null | presente solo nelle liste |
-| `authors` | string[] | può essere troncato dallo store con un'ellissi, che viene scartata |
+| `technical_name` | string | e.g. `web_responsive` |
+| `series` | string | the listing's series |
+| `name` | string | display name |
+| `summary` | string \| null | present in listings only |
+| `authors` | string[] | the store may truncate this with an ellipsis, which is discarded |
 | `price` | [Price](#price) | |
 | `rating` | [Rating](#rating) | |
-| `downloads_total` | int \| null | moduli gratuiti |
-| `downloads_last_month` | int \| null | moduli gratuiti |
-| `purchases` | int \| null | moduli a pagamento |
-| `purchases_last_month` | int \| null | moduli a pagamento |
-| `icon_url` | string \| null | icona o immagine di copertina |
-| `url` | string | pagina sullo store |
+| `downloads_total` | int \| null | free modules |
+| `downloads_last_month` | int \| null | free modules |
+| `purchases` | int \| null | paid modules |
+| `purchases_last_month` | int \| null | paid modules |
+| `icon_url` | string \| null | icon or cover image |
+| `url` | string | page on the store |
 
-Una scheda espone i download **oppure** gli acquisti, mai entrambi: lo store mostra i
-primi per i moduli gratuiti e i secondi per quelli a pagamento.
+A listing exposes downloads **or** purchases, never both: the store shows the former for
+free modules and the latter for paid ones.
 
 ### ModuleDetail
 
-Estende `ModuleCard` con i campi della pagina di dettaglio.
+Extends `ModuleCard` with the fields from the module page.
 
-| Campo | Tipo | Note |
+| Field | Type | Notes |
 |---|---|---|
-| `module_id` | int \| null | id interno `loempia.module` |
-| `description_html` | string \| null | descrizione completa, HTML |
-| `license` | string \| null | es. `LGPL-3`, `OPL-1` |
-| `website` | string \| null | repository dichiarato; è la fonte usata dal prelievo sorgenti |
-| `dependencies` | string[] | nomi tecnici dei moduli Odoo richiesti |
-| `lines_of_code` | int \| null | dipendenze incluse |
+| `module_id` | int \| null | internal `loempia.module` id |
+| `description_html` | string \| null | full description, as HTML |
+| `license` | string \| null | e.g. `LGPL-3`, `OPL-1` |
+| `website` | string \| null | declared repository; this is what source fetching uses |
+| `dependencies` | string[] | technical names of the required Odoo modules |
+| `lines_of_code` | int \| null | dependencies included |
 | `availability` | [Availability](#availability) | |
-| `latest_version` | string \| null | es. `19.0.1.1.0`; `null` sui moduli a pagamento |
+| `latest_version` | string \| null | e.g. `19.0.1.1.0`; `null` for paid modules |
 | `cover_url` | string \| null | |
-| `available_series` | string[] | serie su cui il modulo esiste, dalla più recente |
-| `fetched_at` | datetime | quando la pagina è stata letta |
+| `available_series` | string[] | series the module exists on, newest first |
+| `fetched_at` | datetime | when the page was read |
 | `from_cache` | bool | |
-| `stale` | bool | copia scaduta servita perché l'upstream non rispondeva |
-| `parse_warnings` | string[] | campi che il parser non ha trovato; vuoto in condizioni normali |
+| `stale` | bool | expired copy served because upstream was unreachable |
+| `parse_warnings` | string[] | fields the parser could not find; empty under normal conditions |
 
-`summary` e `downloads_last_month`, ereditati da `ModuleCard`, sono sempre `null` qui:
-la pagina di dettaglio non li riporta.
+`summary` and `downloads_last_month`, inherited from `ModuleCard`, are always `null` here:
+the module page does not carry them.
 
 ### Price
 
@@ -383,9 +385,9 @@ la pagina di dettaglio non li riporta.
 { "is_free": false, "amount": 49.0, "currency": "EUR" }
 ```
 
-`currency` è il codice ISO quando il simbolo è riconosciuto (`€`, `$`, `£`, `¥`, `₹`),
-altrimenti il simbolo stesso. Il microdata `priceCurrency` della pagina non è utilizzabile:
-contiene un template Odoo non renderizzato.
+`currency` is the ISO code when the symbol is recognized (`€`, `$`, `£`, `¥`, `₹`), and the
+raw symbol otherwise. The page's `priceCurrency` microdata is unusable: it contains an
+unrendered Odoo template.
 
 ### Rating
 
@@ -393,8 +395,9 @@ contiene un template Odoo non renderizzato.
 { "value": 5.0, "votes": 31, "reviews": 44 }
 ```
 
-`value` è da 1 a 5 e può valere `.5`; è `null` se nessuno ha votato. `votes` conta i voti,
-`reviews` i commenti, che sono di più perché includono le risposte dell'autore.
+`value` ranges from 1 to 5 and can end in `.5`; it is `null` when nobody has voted. `votes`
+counts ratings and `reviews` counts comments, which is higher because it includes the
+author's replies.
 
 ### Availability
 
@@ -402,10 +405,10 @@ contiene un template Odoo non renderizzato.
 { "odoo_online": false, "odoo_sh": true, "on_premise": true }
 ```
 
-`null` su un campo significa che la pagina non lo dichiarava.
+A `null` field means the page did not state it.
 
 ### ModuleSource
 
-Vedi l'esempio in [`POST /sources`](#post-sourcesseriestechnical_name). `path` è il
-percorso assoluto sul filesystem del servizio, `archive_sha256` l'impronta del tarball
-scaricato: serve a capire se un nuovo prelievo ha davvero portato codice diverso.
+See the example under [`POST /sources`](#post-sourcesseriestechnical_name). `path` is the
+absolute path on the service's filesystem, and `archive_sha256` is the fingerprint of the
+downloaded tarball: useful for telling whether a refetch actually brought different code.

@@ -26,13 +26,13 @@ logger = logging.getLogger(__name__)
 API_PREFIX = "/api/v1"
 
 DESCRIPTION = """
-API REST **non ufficiale** per interrogare l'[Odoo Apps Store](https://apps.odoo.com/apps).
+An **unofficial** REST API for the [Odoo Apps Store](https://apps.odoo.com/apps).
 
-Odoo non espone alcuna API pubblica per lo store: questo servizio legge le pagine
-del sito, le normalizza in JSON e le tiene in cache SQLite. Le richieste verso
-apps.odoo.com sono limitate a **1 al secondo** con al massimo 4 richieste in parallelo.
+Odoo publishes no API for the store: this service reads the site's pages, normalizes
+them into JSON, and caches them in SQLite. Requests to apps.odoo.com are capped at
+**1 per second**, with at most 4 in flight.
 
-Progetto indipendente, senza alcuna affiliazione con Odoo S.A.
+Independent project, not affiliated with Odoo S.A.
 """
 
 
@@ -111,7 +111,7 @@ def create_app() -> FastAPI:
             status_code=502,
             content={
                 "detail": exc.message,
-                "hint": "Il markup di apps.odoo.com è probabilmente cambiato: aggiornare i parser",
+                "hint": "apps.odoo.com markup has probably changed: update the parsers",
             },
         )
 
@@ -119,7 +119,7 @@ def create_app() -> FastAPI:
     async def root() -> dict[str, str]:
         return {"name": "Odoo Apps Store API", "version": __version__, "docs": "/docs"}
 
-    @application.get(f"{API_PREFIX}/health", response_model=HealthResponse, tags=["servizio"])
+    @application.get(f"{API_PREFIX}/health", response_model=HealthResponse, tags=["service"])
     async def health(services: Services = Depends(get_services)) -> HealthResponse:
         return HealthResponse(
             version=__version__,
