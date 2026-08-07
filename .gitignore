@@ -1,0 +1,16 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.env
+# Cache SQLite e codice dei moduli prelevato dai repository altrui.
+data/
+.claude/settings.local.json
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.egg-info/
+build/
+dist/
