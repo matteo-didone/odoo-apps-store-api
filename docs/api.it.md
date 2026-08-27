@@ -148,6 +148,17 @@ negli URL dello store ma non nel suo filtro.
 Gli slug di ordinamento accettati: `relevance`, `downloads`, `newest`, `ratings`, `name`,
 `best_sellers`, `purchases`, `price_desc`, `price_asc`.
 
+`downloads` ordina per download **dell'ultimo mese**, non per totale storico: risponde a
+«cosa stanno installando adesso», non a «cosa è stato installato di più». Lo store non offre
+un ordinamento su `downloads_total`, quindi per la classifica storica bisogna ordinare lato
+client — escludendo prima i moduli a pagamento, che espongono `purchases` e lasciano
+`downloads_total` a `null`:
+
+```bash
+curl -s "http://localhost:8000/api/v1/search?q=whatsapp&series=18.0&limit=100" \
+  | jq '[.items[] | select(.downloads_total != null)] | sort_by(-.downloads_total)'
+```
+
 ---
 
 ## Statistiche
