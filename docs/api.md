@@ -148,6 +148,17 @@ store URLs but not in its filter.
 The accepted sort slugs: `relevance`, `downloads`, `newest`, `ratings`, `name`,
 `best_sellers`, `purchases`, `price_desc`, `price_asc`.
 
+`downloads` sorts by downloads **in the last month**, not by the lifetime total: it answers
+"what are people installing now", not "what has been installed the most". The store offers no
+sort on `downloads_total`, so ranking by lifetime downloads means sorting client-side — and
+filtering out the paid modules first, since they carry `purchases` and leave `downloads_total`
+at `null`:
+
+```bash
+curl -s "http://localhost:8000/api/v1/search?q=whatsapp&series=18.0&limit=100" \
+  | jq '[.items[] | select(.downloads_total != null)] | sort_by(-.downloads_total)'
+```
+
 ---
 
 ## Statistics

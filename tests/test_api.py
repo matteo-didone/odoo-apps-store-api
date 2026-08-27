@@ -190,3 +190,21 @@ class TestSnapshot:
 
         assert (await client.delete(f"/api/v1/watchlist/{watch_id}")).status_code == 204
         assert (await client.delete(f"/api/v1/watchlist/{watch_id}")).status_code == 404
+
+
+async def test_ricerca_deduplica_le_pagine_ripetute(client, app_and_services, seed_cache):
+    """Oltre l'ultimo blocco lo store ripete i risultati invece di esaurirli."""
+    _, services = app_and_services
+    listing = fixture("listing_browse_downloads.html")
+    for offset in range(3):
+        await seed_cache(
+            services.catalog.listing_url(q="mcp", page=1 + offset), listing
+        )
+
+    response = await client.get("/api/v1/search", params={"q": "mcp", "limit": 60})
+    assert response.status_code == 200
+
+    items = response.json()["items"]
+    chiavi = [(i["technical_name"], i["series"]) for i in items]
+    assert len(chiavi) == len(set(chiavi))
+    assert len(chiavi) == 20

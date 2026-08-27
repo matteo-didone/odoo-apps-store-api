@@ -63,7 +63,7 @@ python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 - Schema OpenAPI: <http://localhost:8000/openapi.json>
 - Riferimento completo degli endpoint: **[docs/api.it.md](docs/api.it.md)**
 
-Con Docker:
+Con Docker — non serve altro, `.env` è opzionale e i default bastano per partire:
 
 ```bash
 docker compose up --build
@@ -115,10 +115,11 @@ Tutti sotto il prefisso `/api/v1`. Parametri e risposte in dettaglio in [docs/ap
 
 ### Esempi
 
-I cinque moduli WhatsApp più scaricati per Odoo 18:
+I cinque moduli WhatsApp per Odoo 18 più installati in questo momento
+(`order=downloads` ordina per download dell'ultimo mese, non per totale storico):
 
 ```bash
-curl -s "http://localhost:8000/api/v1/search?q=whatsapp&series=18.0&order=downloads&limit=5" | jq '.items[] | {technical_name, downloads_total, price}'
+curl -s "http://localhost:8000/api/v1/search?q=whatsapp&series=18.0&order=downloads&limit=5" | jq '.items[] | {technical_name, downloads_last_month, price}'
 ```
 
 I moduli a pagamento più venduti nel Point of Sale:

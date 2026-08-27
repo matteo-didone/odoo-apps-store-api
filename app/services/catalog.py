@@ -109,12 +109,21 @@ class CatalogService:
         )
 
         cards = []
+        # Superato l'ultimo blocco di risultati lo store non restituisce 404: ripete
+        # l'ultima pagina piena. Senza deduplica gli stessi moduli finiscono in
+        # risposta una volta per pagina richiesta.
+        seen: set[tuple[str, str]] = set()
         total_pages: int | None = None
         for item in fetched:
             if item.status == 404:
                 continue
             result = parse_listing(item.text, self._settings.base_url)
-            cards.extend(result.cards)
+            for card in result.cards:
+                key = (card.technical_name, card.series)
+                if key in seen:
+                    continue
+                seen.add(key)
+                cards.append(card)
             if result.total_pages is not None:
                 total_pages = max(total_pages or 0, result.total_pages)
 
